@@ -1,0 +1,42 @@
+# Binaries and Object files
+/bin/
+/obj/
+/*.o
+/*.a
+
+# Executable files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove these if you prefer to vendoring your dependencies)
+/vendor/
+
+# IDE/editor files and folders
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS specific files
+.DS_Store
+
+# Git merge conflict files
+*.orig
+
+# Temporary files
+/tmp
+
+# Local Config
+config.json
+
+# reader out
+/readerout/
