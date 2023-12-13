@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SeparatorLength    = 55
+	SeparatorLength    = 20
 	OutputFolder       = "readerout"
 	ReaderIgnoreFile   = OutputFolder + "/.readerignore"
 	OutputFileName     = OutputFolder + "/files_structure.txt"
@@ -187,9 +187,4 @@ func printPath(outputFile *os.File, relPath string) {
 			indent += "│   "
 		}
 	}
-}
-
-func HandleError(message string, err error) {
-	fmt.Printf("%s: %v\n", message, err)
-	os.Exit(1)
 }

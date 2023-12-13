@@ -1,61 +1,67 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
-	"main/pkg"
 	"os"
+	"path/filepath"
+	"sort"
+	"vread/pkg"
 )
 
+var structureFlag bool
+var includePattern string
+
+var rootCmd = &cobra.Command{
+	Use:   "vread",
+	Short: "VRead is a tool for analyzing directory structures",
+	Run: func(cmd *cobra.Command, args []string) {
+		runVRead()
+	},
+}
+
+func init() {
+	rootCmd.Flags().BoolVarP(&structureFlag, "structure", "s", false, "Output only the directory structure")
+	rootCmd.Flags().StringVarP(&includePattern, "include", "i", "", "Include a specific pattern regardless of .readerignore")
+}
+
 func Execute() {
-	var (
-		outputStructureOnly bool
-		includePattern      string
-	)
-
-	rootCmd := createRootCmd(&outputStructureOnly, &includePattern)
-	initializeFlags(rootCmd, &outputStructureOnly, &includePattern)
-
 	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
+		pkg.HandleError("Error executing command", err)
 	}
 }
 
-func createRootCmd(outputStructureOnly *bool, includePattern *string) *cobra.Command {
-	return &cobra.Command{
-		Use:   "vread",
-		Short: "VRead is a tool for analyzing directory structures",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runVRead(*outputStructureOnly, *includePattern)
-		},
-	}
-}
-
-func initializeFlags(rootCmd *cobra.Command, outputStructureOnly *bool, includePattern *string) {
-	rootCmd.Flags().BoolVarP(outputStructureOnly, "structure", "s", false, "Output only the directory structure")
-	rootCmd.Flags().StringVarP(includePattern, "include", "i", "", "Include a specific pattern regardless of .readerignore")
-}
-
-func runVRead(outputStructureOnly bool, includePattern string) error {
+func runVRead() {
 	rootPath := "."
 
-	var includePatterns []string
-	if includePattern != "" {
-		includePatterns = append(includePatterns, includePattern)
+	if err := os.MkdirAll(pkg.OutputFolder, os.ModePerm); err != nil {
+		pkg.HandleError("Error creating output folder", err)
 	}
 
-	paths, err := pkg.GetPathsToProcess(rootPath, includePatterns)
+	if err := pkg.EnsureIgnoreFileExists(); err != nil {
+		pkg.HandleError("Error ensuring ignore file exists", err)
+	}
+
+	excludePatterns := pkg.ReadIgnorePatterns()
+	if includePattern != "" {
+		excludePatterns = append(excludePatterns, includePattern)
+	}
+
+	paths, err := pkg.GetPathsToProcess(rootPath, excludePatterns)
 	if err != nil {
-		return pkg.HandleError("Error getting paths to process", err)
+		pkg.HandleError("Error processing paths", err)
 	}
 
 	outputFile, err := pkg.CreateOutputFile()
 	if err != nil {
-		return pkg.HandleError("Error creating output file", err)
+		pkg.HandleError("Error creating output file", err)
 	}
 	defer pkg.CloseFile(outputFile)
 
-	if err := pkg.PrintDirectoryTree(outputFile, rootPath, paths); err != nil {
-		return err
+	if structureFlag {
+		pkg.PrintDirectoryTree(outputFile, rootPath, paths)
+	} else {
+		pkg.PrintDirectoryTree(outputFile, rootPath, paths)
+		pkg.ProcessDirectoryStructure(outputFile, rootPath, paths)
 	}
-	return pkg.ProcessDirectoryStructure(outputFile, rootPath, paths)
 }
