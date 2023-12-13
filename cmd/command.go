@@ -1,37 +1,33 @@
+// cmd/command.go
+
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
+	"main/pkg" // Correct import path
 	"os"
-	"path/filepath"
-	"sort"
-	"vread/pkg"
 )
 
-var structureFlag bool
-var includePattern string
+// NewRootCommand creates the root Cobra command for vread.
+func NewRootCommand() *cobra.Command {
+	var structureFlag bool
+	var includePattern string
 
-var rootCmd = &cobra.Command{
-	Use:   "vread",
-	Short: "VRead is a tool for analyzing directory structures",
-	Run: func(cmd *cobra.Command, args []string) {
-		runVRead()
-	},
-}
+	rootCmd := &cobra.Command{
+		Use:   "vread",
+		Short: "VRead is a tool for analyzing directory structures",
+		Run: func(cmd *cobra.Command, args []string) {
+			runVRead(structureFlag, includePattern)
+		},
+	}
 
-func init() {
 	rootCmd.Flags().BoolVarP(&structureFlag, "structure", "s", false, "Output only the directory structure")
 	rootCmd.Flags().StringVarP(&includePattern, "include", "i", "", "Include a specific pattern regardless of .readerignore")
+
+	return rootCmd
 }
 
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		pkg.HandleError("Error executing command", err)
-	}
-}
-
-func runVRead() {
+func runVRead(onlyStructure bool, includePattern string) {
 	rootPath := "."
 
 	if err := os.MkdirAll(pkg.OutputFolder, os.ModePerm); err != nil {
@@ -58,7 +54,7 @@ func runVRead() {
 	}
 	defer pkg.CloseFile(outputFile)
 
-	if structureFlag {
+	if onlyStructure {
 		pkg.PrintDirectoryTree(outputFile, rootPath, paths)
 	} else {
 		pkg.PrintDirectoryTree(outputFile, rootPath, paths)

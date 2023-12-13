@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SeparatorLength    = 20
+	SeparatorLength    = 55
 	OutputFolder       = "readerout"
 	ReaderIgnoreFile   = OutputFolder + "/.readerignore"
 	OutputFileName     = OutputFolder + "/files_structure.txt"
