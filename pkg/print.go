@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -13,12 +14,14 @@ const (
 	SeparatorLength = 55
 )
 
-// PrintDirectoryTree prints the directory structure to the outputFile.
 func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 	fmt.Fprintln(outputFile, "Directory Structure:")
 	fmt.Fprintln(outputFile, ".")
 
-	for _, path := range paths {
+	// Sort paths to ensure correct order
+	sort.Strings(paths)
+
+	for i, path := range paths {
 		if path == rootPath {
 			continue // Skip the root directory itself
 		}
@@ -26,15 +29,35 @@ func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 		relPath, _ := filepath.Rel(rootPath, path)
 		parts := strings.Split(relPath, string(filepath.Separator))
 
-		// Print formatted directory and file structure
-		for i, part := range parts {
-			if i < len(parts)-1 {
-				fmt.Fprintf(outputFile, "│   ")
-			} else {
+		for level, part := range parts {
+			prefix := ""
+
+			// Create prefix for the current level
+			for i := 0; i < level; i++ {
+				prefix += "│   "
+			}
+
+			// Print the part
+			if level == len(parts)-1 {
 				if isDir(path) {
-					fmt.Fprintf(outputFile, "├── %s [Folder]\n", part)
+					fmt.Fprintf(outputFile, "%s├── %s [Folder]\n", prefix, part)
 				} else {
-					fmt.Fprintf(outputFile, "└── %s\n", part)
+					fmt.Fprintf(outputFile, "%s└── %s\n", prefix, part)
+				}
+
+				// Determine if this is the last item in the folder
+				if i < len(paths)-1 {
+					nextPath := paths[i+1]
+					nextRelPath, _ := filepath.Rel(rootPath, nextPath)
+					nextParts := strings.Split(nextRelPath, string(filepath.Separator))
+
+					if len(nextParts) <= level {
+						// Print extra line with vertical bar if it's the last item
+						fmt.Fprintln(outputFile, prefix)
+					}
+				} else {
+					// Always print the extra line for the very last item
+					fmt.Fprintln(outputFile, prefix)
 				}
 			}
 		}
