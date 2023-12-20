@@ -12,6 +12,8 @@ import (
 
 const (
 	SeparatorLength = 55
+	FolderTag       = "[Folder]"
+	IndentSize      = 4
 )
 
 // PrintDirectoryTree prints the directory structure to the outputFile.
@@ -23,12 +25,12 @@ func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 		dir, file := filepath.Split(path)
 		// Print directory if it's different from the last one
 		if dir != lastDir && dir != "" {
-			fmt.Fprintln(outputFile, formatDir(dir, rootPath))
+			fmt.Fprint(outputFile, formatDir(dir, rootPath))
 			lastDir = dir
 		}
 		// Print file
 		if file != "" {
-			fmt.Fprintln(outputFile, formatFile(dir, file, rootPath))
+			fmt.Fprint(outputFile, formatFile(dir, file, rootPath))
 		}
 	}
 }
@@ -37,16 +39,40 @@ func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 func formatDir(dir, rootPath string) string {
 	relDir, _ := filepath.Rel(rootPath, dir)
 	parts := strings.Split(relDir, string(os.PathSeparator))
-	indent := strings.Repeat("│   ", len(parts)-1)
-	return fmt.Sprintf("%s└── %s [Folder]", indent, parts[len(parts)-1])
+	var indentBuilder strings.Builder
+
+	for i, part := range parts {
+		if i == len(parts)-1 {
+			indentBuilder.WriteString("└── ")
+		} else {
+			indentBuilder.WriteString("│   ")
+		}
+		indentBuilder.WriteString(part)
+
+		if i == len(parts)-1 {
+			indentBuilder.WriteString(" " + FolderTag + "\n")
+		} else {
+			indentBuilder.WriteString("\n")
+		}
+	}
+
+	return indentBuilder.String()
 }
 
 // formatFile formats file string.
 func formatFile(dir, file, rootPath string) string {
 	relDir, _ := filepath.Rel(rootPath, dir)
 	parts := strings.Split(relDir, string(os.PathSeparator))
-	indent := strings.Repeat("│   ", len(parts))
-	return fmt.Sprintf("%s└── %s", indent, file)
+	var indentBuilder strings.Builder
+
+	// Use _ to indicate that the loop variable is not used
+	for _ = range parts {
+		indentBuilder.WriteString("│   ")
+	}
+
+	indentBuilder.WriteString("└── " + file + "\n")
+
+	return indentBuilder.String()
 }
 
 // PrintFileDetails prints details of a file or directory to the outputFile.
@@ -86,13 +112,22 @@ func printPath(outputFile *os.File, relPath string) {
 	var indentBuilder strings.Builder
 
 	for i, dir := range dirs {
+		if dir == "" {
+			// Skip empty directory names
+			continue
+		}
+
+		if i > 0 {
+			indentBuilder.WriteString("│   ")
+		}
+
 		if i == len(dirs)-1 {
 			fmt.Fprintf(outputFile, "%s└── %s (<-)\n", indentBuilder.String(), dir)
 		} else {
 			fmt.Fprintf(outputFile, "%s├── %s\n", indentBuilder.String(), dir)
-			indentBuilder.WriteString("│   ")
 		}
 	}
+
 }
 
 // formatFileSize formats the size of the file for printing.
