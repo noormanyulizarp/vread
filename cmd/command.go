@@ -4,11 +4,10 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"main/pkg" // Correct import path
+	"main/pkg"
 	"os"
 )
 
-// NewRootCommand creates the root Cobra command for vread.
 func NewRootCommand() *cobra.Command {
 	var structureFlag bool
 	var includePattern string

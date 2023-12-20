@@ -1,3 +1,4 @@
+// pkg/reader.go
 package pkg
 
 import (
@@ -12,45 +13,12 @@ import (
 )
 
 const (
-	SeparatorLength    = 55
-	OutputFolder       = "readerout"
-	ReaderIgnoreFile   = OutputFolder + "/.readerignore"
-	OutputFileName     = OutputFolder + "/files_structure.txt"
-	DefaultPermissions = 0644
+	SeparatorLength = 55
+	OutputFolder    = "readerout"
+	OutputFileName  = OutputFolder + "/files_structure.txt"
 )
 
-var defaultIgnorePatterns = []string{
-	"# Vread build", "vread", "",
-	"# Version Control", ".git", "",
-	"# REPLIT", ".local", ".config", ".cache", "",
-	"# Node", "node_modules", "",
-	"# Logs", "*.log", "",
-	"# IDEs and Editors", ".vscode", ".idea", "*.iml", "*.ipr", "*.iws", "*~", "*.swp", "",
-	"# Operating System", ".DS_Store", "Thumbs.db", "",
-	"# Reader", ".readerignore", "files_structure.txt", "",
-	"# Additional Patterns", ".project-rc", "__pycache__/", "*.py[cod]", "*$py.class", "*.so",
-	".Python", "build/", "develop-eggs/", "dist/", "downloads/", "eggs/", ".eggs/", "lib/", "lib64/",
-	"parts/", "sdist/", "var/", "wheels/", "*.egg-info/", ".installed.cfg", "*.egg", "MANIFEST",
-	"*.manifest", "*.spec", "pip-log.txt", "pip-delete-this-directory.txt", "htmlcov/", ".tox/",
-	".coverage", ".coverage.*", ".cache", "nosetests.xml", "coverage.xml", "*.cover", ".hypothesis/",
-	".pytest_cache/", "core.*", "*.mo", "*.pot", "*.log", "local_settings.py", "db.sqlite3", "instance/",
-	".webassets-cache", ".scrapy", "docs/_build/", "target/", ".ipynb_checkpoints", ".python-version",
-	"celerybeat-schedule", "*.sage.py", "/site", ".mypy_cache/", "",
-	"# Media files", "*.mp4", "*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp", "*.tiff", "*.ico",
-}
-
-func EnsureIgnoreFileExists() error {
-	if _, err := os.Stat(ReaderIgnoreFile); os.IsNotExist(err) {
-		content := getDefaultIgnorePatterns()
-		return ioutil.WriteFile(ReaderIgnoreFile, []byte(content), DefaultPermissions)
-	}
-	return nil
-}
-
-func getDefaultIgnorePatterns() string {
-	return strings.Join(defaultIgnorePatterns, "\n")
-}
-
+// GetPathsToProcess walks through the directory tree starting from rootPath, respecting ignore patterns.
 func GetPathsToProcess(rootPath string, excludePatterns []string) ([]string, error) {
 	var paths []string
 	err := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, err error) error {
@@ -69,11 +37,13 @@ func GetPathsToProcess(rootPath string, excludePatterns []string) ([]string, err
 	return paths, nil
 }
 
+// ReadIgnorePatterns reads ignore patterns from .readerignore file.
 func ReadIgnorePatterns() []string {
 	var patterns []string
 	file, err := os.Open(ReaderIgnoreFile)
 	if err != nil {
 		HandleError(fmt.Sprintf("Error opening %s", ReaderIgnoreFile), err)
+		return nil
 	}
 	defer file.Close()
 
@@ -87,6 +57,7 @@ func ReadIgnorePatterns() []string {
 	return patterns
 }
 
+// PrintDirectoryTree prints the directory structure to the outputFile.
 func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 	fmt.Fprintln(outputFile, "Directory Structure:")
 	for _, path := range paths {
@@ -97,6 +68,7 @@ func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 	fmt.Fprintln(outputFile)
 }
 
+// generateDirTree generates a string representation of the directory tree for a given path.
 func generateDirTree(path string) string {
 	parts := strings.Split(path, string(os.PathSeparator))
 	tree := ""
@@ -110,6 +82,7 @@ func generateDirTree(path string) string {
 	return tree
 }
 
+// ProcessDirectoryStructure processes each path in the directory structure and prints details.
 func ProcessDirectoryStructure(outputFile *os.File, rootPath string, paths []string) {
 	for _, path := range paths {
 		if err := PrintFileDetails(rootPath, path, outputFile); err != nil {
@@ -119,6 +92,7 @@ func ProcessDirectoryStructure(outputFile *os.File, rootPath string, paths []str
 	}
 }
 
+// PrintFileDetails prints details of a file or directory to the outputFile.
 func PrintFileDetails(rootPath, path string, outputFile *os.File) error {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -143,6 +117,7 @@ func PrintFileDetails(rootPath, path string, outputFile *os.File) error {
 	return nil
 }
 
+// formatFileSize formats the size of the file for printing.
 func formatFileSize(size int64) string {
 	if size < 1024 {
 		return fmt.Sprintf("%dB", size)
@@ -150,6 +125,7 @@ func formatFileSize(size int64) string {
 	return fmt.Sprintf("%dKB", size/1024)
 }
 
+// shouldExclude determines if a given path should be excluded based on provided patterns.
 func shouldExclude(path string, patterns []string) bool {
 	relPath, err := filepath.Rel(".", path)
 	if err != nil {
@@ -176,6 +152,7 @@ func shouldExclude(path string, patterns []string) bool {
 	return false
 }
 
+// printPath prints the file path in a formatted manner to the outputFile.
 func printPath(outputFile *os.File, relPath string) {
 	dirs := strings.Split(relPath, string(os.PathSeparator))
 	indent := ""
