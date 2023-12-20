@@ -6,73 +6,48 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
 const (
 	SeparatorLength = 55
-	FolderTag       = "[Folder]"
-	IndentSize      = 4
 )
 
 // PrintDirectoryTree prints the directory structure to the outputFile.
 func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 	fmt.Fprintln(outputFile, "Directory Structure:")
-	sort.Strings(paths) // Sort paths to ensure correct order
-	var lastDir string
+	fmt.Fprintln(outputFile, ".")
+
 	for _, path := range paths {
-		dir, file := filepath.Split(path)
-		// Print directory if it's different from the last one
-		if dir != lastDir && dir != "" {
-			fmt.Fprint(outputFile, formatDir(dir, rootPath))
-			lastDir = dir
+		if path == rootPath {
+			continue // Skip the root directory itself
 		}
-		// Print file
-		if file != "" {
-			fmt.Fprint(outputFile, formatFile(dir, file, rootPath))
+
+		relPath, _ := filepath.Rel(rootPath, path)
+		parts := strings.Split(relPath, string(filepath.Separator))
+
+		// Print formatted directory and file structure
+		for i, part := range parts {
+			if i < len(parts)-1 {
+				fmt.Fprintf(outputFile, "│   ")
+			} else {
+				if isDir(path) {
+					fmt.Fprintf(outputFile, "├── %s [Folder]\n", part)
+				} else {
+					fmt.Fprintf(outputFile, "└── %s\n", part)
+				}
+			}
 		}
 	}
 }
 
-// formatDir formats directory string.
-func formatDir(dir, rootPath string) string {
-	relDir, _ := filepath.Rel(rootPath, dir)
-	parts := strings.Split(relDir, string(os.PathSeparator))
-	var indentBuilder strings.Builder
-
-	for i, part := range parts {
-		if i == len(parts)-1 {
-			indentBuilder.WriteString("└── ")
-		} else {
-			indentBuilder.WriteString("│   ")
-		}
-		indentBuilder.WriteString(part)
-
-		if i == len(parts)-1 {
-			indentBuilder.WriteString(" " + FolderTag + "\n")
-		} else {
-			indentBuilder.WriteString("\n")
-		}
+// isDir checks if a given path is a directory
+func isDir(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
 	}
-
-	return indentBuilder.String()
-}
-
-// formatFile formats file string.
-func formatFile(dir, file, rootPath string) string {
-	relDir, _ := filepath.Rel(rootPath, dir)
-	parts := strings.Split(relDir, string(os.PathSeparator))
-	var indentBuilder strings.Builder
-
-	// Use _ to indicate that the loop variable is not used
-	for _ = range parts {
-		indentBuilder.WriteString("│   ")
-	}
-
-	indentBuilder.WriteString("└── " + file + "\n")
-
-	return indentBuilder.String()
+	return info.IsDir()
 }
 
 // PrintFileDetails prints details of a file or directory to the outputFile.
@@ -86,6 +61,7 @@ func PrintFileDetails(rootPath, path string, outputFile *os.File) error {
 	return nil
 }
 
+// printFileInfo prints detailed information of a file or directory.
 func printFileInfo(outputFile *os.File, rootPath, path string, info os.FileInfo) {
 	relPath, _ := filepath.Rel(rootPath, path)
 	sizeStr := formatFileSize(info.Size())
@@ -113,8 +89,7 @@ func printPath(outputFile *os.File, relPath string) {
 
 	for i, dir := range dirs {
 		if dir == "" {
-			// Skip empty directory names
-			continue
+			continue // Skip empty directory names
 		}
 
 		if i > 0 {
@@ -127,7 +102,6 @@ func printPath(outputFile *os.File, relPath string) {
 			fmt.Fprintf(outputFile, "%s├── %s\n", indentBuilder.String(), dir)
 		}
 	}
-
 }
 
 // formatFileSize formats the size of the file for printing.
@@ -137,3 +111,5 @@ func formatFileSize(size int64) string {
 	}
 	return fmt.Sprintf("%dKB", size/1024)
 }
+
+// Other necessary functions and logic should be included as needed.
