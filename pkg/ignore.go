@@ -2,8 +2,10 @@
 package pkg
 
 import (
+	"bufio"
 	"io/ioutil"
 	"os"
+  "fmt"
 	"strings"
 )
 
@@ -63,4 +65,24 @@ func EnsureIgnoreFileExists() error {
 // getDefaultIgnorePatterns returns a string containing all default ignore patterns, joined by newline characters.
 func getDefaultIgnorePatterns() string {
 	return strings.Join(defaultIgnorePatterns, "\n")
+}
+
+// ReadIgnorePatterns reads ignore patterns from the .readerignore file.
+func ReadIgnorePatterns() []string {
+	var patterns []string
+	file, err := os.Open(ReaderIgnoreFile)
+	if err != nil {
+		HandleError(fmt.Sprintf("Error opening %s", ReaderIgnoreFile), err)
+		return nil
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line != "" && !strings.HasPrefix(line, "#") {
+			patterns = append(patterns, line)
+		}
+	}
+	return patterns
 }

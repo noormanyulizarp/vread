@@ -1,8 +1,6 @@
-// pkg/reader.go
 package pkg
 
 import (
-	"bufio"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -35,26 +33,6 @@ func GetPathsToProcess(rootPath string, excludePatterns []string) ([]string, err
 	}
 	sort.Strings(paths)
 	return paths, nil
-}
-
-// ReadIgnorePatterns reads ignore patterns from .readerignore file.
-func ReadIgnorePatterns() []string {
-	var patterns []string
-	file, err := os.Open(ReaderIgnoreFile)
-	if err != nil {
-		HandleError(fmt.Sprintf("Error opening %s", ReaderIgnoreFile), err)
-		return nil
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line != "" && !strings.HasPrefix(line, "#") {
-			patterns = append(patterns, line)
-		}
-	}
-	return patterns
 }
 
 // PrintDirectoryTree prints the directory structure to the outputFile.
