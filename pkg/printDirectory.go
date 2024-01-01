@@ -9,58 +9,61 @@ import (
 	"strings"
 )
 
-// PrintDirectoryTree prints the directory structure to the outputFile.
 func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 	fmt.Fprintln(outputFile, "Directory Structure:")
 	fmt.Fprintln(outputFile, ".")
 
-	// Sort paths to ensure correct order
 	sort.Strings(paths)
 
 	for i, path := range paths {
 		if path == rootPath {
-			continue // Skip the root directory itself
+			continue
 		}
 
 		relPath, _ := filepath.Rel(rootPath, path)
 		parts := strings.Split(relPath, string(filepath.Separator))
 
 		for level, part := range parts {
-			prefix := ""
+			prefix := strings.Repeat("│   ", level)
 
-			// Create prefix for the current level
-			for i := 0; i < level; i++ {
-				prefix += "│   "
-			}
+			branchSymbol := determineBranchSymbol(level, i, parts, paths, rootPath)
 
 			// Print the part
 			if level == len(parts)-1 {
 				if isDir(path) {
-					fmt.Fprintf(outputFile, "%s├── %s [Folder]\n", prefix, part)
+					fmt.Fprintf(outputFile, "%s%s%s [Folder]\n", prefix, branchSymbol, part)
 				} else {
-					fmt.Fprintf(outputFile, "%s└── %s\n", prefix, part)
+					fmt.Fprintf(outputFile, "%s%s%s\n", prefix, branchSymbol, part)
 				}
 
-				// Determine if this is the last item in the folder
-				if i < len(paths)-1 {
-					nextPath := paths[i+1]
-					nextRelPath, _ := filepath.Rel(rootPath, nextPath)
-					nextParts := strings.Split(nextRelPath, string(filepath.Separator))
-
-					if len(nextParts) <= level {
-						// Print extra line with vertical bar if it's the last item
-						fmt.Fprintln(outputFile, prefix)
-					}
-				} else {
-					// Always print the extra line for the very last item
-					fmt.Fprintln(outputFile, prefix)
+				// Handle vertical line for sub-folders
+				if branchSymbol == "└── " && level != 0 {
+					verticalLinePrefix := strings.Repeat("│   ", level-1) + "│      "
+					fmt.Fprintln(outputFile, verticalLinePrefix)
 				}
 			}
 		}
 	}
+
+	// No additional vertical line after the last item of the root directory
 }
 
-// isDir checks if a given path is a directory
+func determineBranchSymbol(level, index int, parts []string, paths []string, rootPath string) string {
+	if index == len(paths)-1 {
+		return "└── "
+	}
+
+	nextPath := paths[index+1]
+	nextRelPath, _ := filepath.Rel(rootPath, nextPath)
+	nextParts := strings.Split(nextRelPath, string(filepath.Separator))
+
+	if len(nextParts) <= level {
+		return "└── "
+	}
+
+	return "├── "
+}
+
 func isDir(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
