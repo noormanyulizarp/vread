@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// PrintDirectoryTree prints the tree structure of directories and files.
 func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 	fmt.Fprintln(outputFile, "Directory Structure:")
 	fmt.Fprintln(outputFile, ".")
@@ -20,50 +21,76 @@ func PrintDirectoryTree(outputFile *os.File, rootPath string, paths []string) {
 			continue
 		}
 
-		relPath, _ := filepath.Rel(rootPath, path)
-		parts := strings.Split(relPath, string(filepath.Separator))
-
-		for level, part := range parts {
-			prefix := strings.Repeat("│   ", level)
-
-			branchSymbol := determineBranchSymbol(level, i, parts, paths, rootPath)
-
-			// Print the part
-			if level == len(parts)-1 {
-				if isDir(path) {
-					fmt.Fprintf(outputFile, "%s%s%s [Folder]\n", prefix, branchSymbol, part)
-				} else {
-					fmt.Fprintf(outputFile, "%s%s%s\n", prefix, branchSymbol, part)
-				}
-
-				// Handle vertical line for sub-folders
-				if branchSymbol == "└── " && level != 0 {
-					verticalLinePrefix := strings.Repeat("│   ", level-1) + "│      "
-					fmt.Fprintln(outputFile, verticalLinePrefix)
-				}
-			}
+		relPath, err := filepath.Rel(rootPath, path)
+		if err != nil {
+			fmt.Fprintf(outputFile, "Error processing path %s: %v\n", path, err)
+			continue
 		}
-	}
 
-	// No additional vertical line after the last item of the root directory
+		parts := strings.Split(relPath, string(filepath.Separator))
+		printDirectoryPath(outputFile, parts, i, paths, path, rootPath)
+	}
 }
 
-func determineBranchSymbol(level, index int, parts []string, paths []string, rootPath string) string {
-	if index == len(paths)-1 {
+// printDirectoryPath handles the printing of each individual path.
+func printDirectoryPath(outputFile *os.File, parts []string, index int, paths []string, currentPath, rootPath string) {
+	for level, part := range parts {
+		prefix := getPrefix(level)
+		branchSymbol := getBranchSymbol(level, index, paths, rootPath)
+
+		if level == len(parts)-1 {
+			fmt.Fprintf(outputFile, "%s%s%s\n", prefix, branchSymbol, formatPath(part, currentPath))
+
+			handleVerticalLineFormatting(outputFile, branchSymbol, level, index, len(paths))
+		}
+	}
+}
+
+// getPrefix generates the indentation prefix for each level of the path.
+func getPrefix(level int) string {
+	return strings.Repeat("│   ", level)
+}
+
+// getBranchSymbol determines the correct branch symbol for the tree structure.
+func getBranchSymbol(level, index int, paths []string, rootPath string) string {
+	if isLastItemInDirectory(level, index, paths, rootPath) {
 		return "└── "
 	}
-
-	nextPath := paths[index+1]
-	nextRelPath, _ := filepath.Rel(rootPath, nextPath)
-	nextParts := strings.Split(nextRelPath, string(filepath.Separator))
-
-	if len(nextParts) <= level {
-		return "└── "
-	}
-
 	return "├── "
 }
 
+// formatPath formats the path string, adding [Folder] if it's a directory.
+func formatPath(part, path string) string {
+	if isDir(path) {
+		return fmt.Sprintf("%s [Folder]", part)
+	}
+	return part
+}
+
+// handleVerticalLineFormatting manages the vertical line formatting in the tree.
+func handleVerticalLineFormatting(outputFile *os.File, branchSymbol string, level, index, totalPaths int) {
+	if branchSymbol == "└── " {
+		if level != 0 {
+			verticalLinePrefix := strings.Repeat("│   ", level-1) + "│      "
+			fmt.Fprintln(outputFile, verticalLinePrefix)
+		} else if index < totalPaths-1 {
+			fmt.Fprintln(outputFile, "│      ")
+		}
+	}
+}
+
+// isLastItemInDirectory determines if the current path is the last in its directory level.
+func isLastItemInDirectory(level, index int, paths []string, rootPath string) bool {
+	if index == len(paths)-1 {
+		return true
+	}
+
+	nextPathRel, _ := filepath.Rel(rootPath, paths[index+1])
+	nextParts := strings.Split(nextPathRel, string(filepath.Separator))
+	return len(nextParts) <= level
+}
+
+// isDir checks if the given path is a directory.
 func isDir(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
