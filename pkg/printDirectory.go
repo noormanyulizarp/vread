@@ -69,13 +69,11 @@ func formatPath(part, path string) string {
 
 // handleVerticalLineFormatting manages the vertical line formatting in the tree.
 func handleVerticalLineFormatting(outputFile *os.File, branchSymbol string, level, index, totalPaths int) {
-	if branchSymbol == "└── " {
-		if level != 0 {
-			verticalLinePrefix := strings.Repeat("│   ", level-1) + "│      "
-			fmt.Fprintln(outputFile, verticalLinePrefix)
-		} else if index < totalPaths-1 {
-			fmt.Fprintln(outputFile, "│      ")
-		}
+	if level != 0 && branchSymbol == "└── " {
+		verticalLinePrefix := strings.Repeat("│   ", level-1) + "    "
+		fmt.Fprintln(outputFile, verticalLinePrefix)
+	} else if level == 0 && branchSymbol == "└── " && index < totalPaths-1 {
+		fmt.Fprintln(outputFile, "│   ")
 	}
 }
 
